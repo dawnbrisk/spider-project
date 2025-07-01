@@ -45,12 +45,12 @@ def login():
     email_input = wait.until(EC.visibility_of_element_located(
         (By.XPATH, '//input[@placeholder="Email"]')
     ))
-    email_input.send_keys("demo@buyer.com")
+    email_input.send_keys("demodeu@test.com ")
 
     password_input = wait.until(EC.visibility_of_element_located(
         (By.XPATH, '//input[@placeholder="Password"]')
     ))
-    password_input.send_keys("!u67q12dM")
+    password_input.send_keys("ASD@@0514bnm")
 
     login_button = wait.until(EC.element_to_be_clickable(
         (By.XPATH, '//button[contains(text(), "Login Now")]')
@@ -200,69 +200,113 @@ def close_cookie_popup():
 def crawl_products():
     try:
         close_cookie_popup()
-        # 【1】改为先定位所有一级菜单元素
-        first_menus = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//span[@class="category-name text-word"]')))
-        # 【2】用索引循环，避免直接遍历过时元素
-        for i in range(len(first_menus)):
-            # 【3】循环里每次重新定位一级菜单，保证元素是最新的
-            first_menus = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//span[@class="category-name text-word"]')))
-            first_item = first_menus[i]
+        first_menus = wait.until(EC.presence_of_all_elements_located(
+            (By.XPATH, '//span[@class="category-name text-word"]')
+        ))
 
+        for i in range(len(first_menus)):
+            first_menus = wait.until(EC.presence_of_all_elements_located(
+                (By.XPATH, '//span[@class="category-name text-word"]')
+            ))
+            first_item = first_menus[i]
             first_text = first_item.text.strip()
             print("\n一级菜单：", first_text)
+
             actions.move_to_element(first_item).perform()
-            time.sleep(3)
+            time.sleep(2)
 
             try:
-                # 【4】重新定位二级菜单元素，避免使用过时元素
-                second_menus = driver.find_elements(By.XPATH, '//div[contains(@class,"second-level-category")]//div[@data-gmd-attr-search_keyword]')
-                # 【5】用索引循环二级菜单
+                second_menus = driver.find_elements(By.XPATH,
+                    '//div[contains(@class,"second-level-category")]//div[@data-gmd-attr-search_keyword]')
                 for j in range(len(second_menus)):
-                    # 【6】每次循环重新定位二级菜单元素，保证最新
-                    second_menus = driver.find_elements(By.XPATH, '//div[contains(@class,"second-level-category")]//div[@data-gmd-attr-search_keyword]')
+                    second_menus = driver.find_elements(By.XPATH,
+                        '//div[contains(@class,"second-level-category")]//div[@data-gmd-attr-search_keyword]')
                     second_item = second_menus[j]
                     second_text = second_item.get_attribute('data-gmd-attr-search_keyword')
                     print("  二级菜单：", second_text)
+
                     actions.move_to_element(second_item).perform()
+                    time.sleep(1)
+                    second_item.click()
+                    time.sleep(3)
+
+                    # 获取二级 URL 和 category_id
+                    second_url = driver.current_url
+                    parsed_url = urllib.parse.urlparse(second_url)
+                    query_params = urllib.parse.parse_qs(parsed_url.query)
+                    category_id = query_params.get("product_category_id", [""])[0]
+                    print("    二级 category_id:", category_id)
+
+                    try:
+                        sql = "INSERT INTO spider_category_ids (level1, level2, level3, category_id) VALUES (%s, %s, %s, %s)"
+                        cursor.execute(sql, (first_text, second_text, "", category_id))
+                        db.commit()
+                    except Exception as db_err:
+                        print("    保存二级失败:", db_err)
+                        db.rollback()
+
+                    try:
+                        third_menus = driver.find_elements(By.XPATH,
+                            '//div[contains(@class,"third-level-category")]//div[@data-gmd-attr-search_keyword]')
+                        for k in range(len(third_menus)):
+                            third_menus = driver.find_elements(By.XPATH,
+                                '//div[contains(@class,"third-level-category")]//div[@data-gmd-attr-search_keyword]')
+                            third_item = third_menus[k]
+                            third_text = third_item.get_attribute('data-gmd-attr-search_keyword')
+                            print("    三级菜单：", third_text)
+                            third_item.click()
+                            time.sleep(3)
+
+                            third_url = driver.current_url
+                            parsed_url = urllib.parse.urlparse(third_url)
+                            query_params = urllib.parse.parse_qs(parsed_url.query)
+                            category_id = query_params.get("product_category_id", [""])[0]
+                            print("      三级 category_id:", category_id)
+
+                            try:
+                                sql = "INSERT INTO spider_category_ids (level1, level2, level3, category_id) VALUES (%s, %s, %s, %s)"
+                                cursor.execute(sql, (first_text, second_text, third_text, category_id))
+                                db.commit()
+                            except Exception as db_err:
+                                print("      保存三级失败:", db_err)
+                                db.rollback()
+
+                            driver.back()
+                            time.sleep(2)
+
+                            # 回到二级菜单后重新 hover
+                            first_menus = wait.until(EC.presence_of_all_elements_located(
+                                (By.XPATH, '//span[@class="category-name text-word"]')
+                            ))
+                            first_item = first_menus[i]
+                            actions.move_to_element(first_item).perform()
+                            time.sleep(1)
+
+                            second_menus = driver.find_elements(By.XPATH,
+                                '//div[contains(@class,"second-level-category")]//div[@data-gmd-attr-search_keyword]')
+                            second_item = second_menus[j]
+                            actions.move_to_element(second_item).perform()
+                            time.sleep(1)
+
+                    except Exception as e3:
+                        print(f"    处理三级失败: {e3}")
+
+                    driver.back()
                     time.sleep(2)
 
-                    # 【7】同理重新定位三级菜单元素
-                    third_menus = driver.find_elements(By.XPATH, '//div[contains(@class,"third-level-category")]//div[@data-gmd-attr-search_keyword]')
-                    # 【8】用索引循环三级菜单
-                    for k in range(len(third_menus)):
-                        # 【9】循环中重新定位三级菜单，避免元素过时
-                        third_menus = driver.find_elements(By.XPATH, '//div[contains(@class,"third-level-category")]//div[@data-gmd-attr-search_keyword]')
-                        third_item = third_menus[k]
-                        third_text = third_item.get_attribute('data-gmd-attr-search_keyword')
-                        print("    三级菜单：", third_text)
+                    # 重新 hover 一级菜单
+                    first_menus = wait.until(EC.presence_of_all_elements_located(
+                        (By.XPATH, '//span[@class="category-name text-word"]')
+                    ))
+                    first_item = first_menus[i]
+                    actions.move_to_element(first_item).perform()
+                    time.sleep(1)
 
-                        third_item.click()
-                        time.sleep(3)
+            except Exception as e2:
+                print(f"  处理二级失败: {e2}")
 
-                        # 提取当前 URL 并解析出 product_category_id
-                        current_url = driver.current_url
-                        parsed_url = urllib.parse.urlparse(current_url)
-                        query_params = urllib.parse.parse_qs(parsed_url.query)
-                        category_id = query_params.get("product_category_id", [""])[0]  # 获取第一个值或空字符串
-
-                        print("    category_id:", category_id)
-
-                        # 保存到数据库
-                        try:
-                            sql = "INSERT INTO spider_category_ids (level1, level2, level3, category_id) VALUES (%s, %s, %s, %s)"
-                            cursor.execute(sql, (first_text, second_text, third_text, category_id))
-                            db.commit()
-                        except Exception as db_err:
-                            print("    保存数据库失败:", db_err)
-                            db.rollback()
-
-                        driver.back()
-                        time.sleep(2)
-            except Exception as e:
-                print(f"Processing {first_text} failed: {str(e)}")
     except Exception as e:
-        print(f"Failed to crawl products: {str(e)}")
-
+        print(f"爬取失败: {str(e)}")
 
 
 

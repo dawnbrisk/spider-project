@@ -11,9 +11,9 @@ import time
 import random
 
 import urllib.parse
-import pymysql  # 或使用 SQLAlchemy，看你项目选择
+import pymysql  # 或使用 SQLAlchemy，
 
-# 建议提前初始化数据库连接
+#
 db = pymysql.connect(
     host="localhost",
     user="root",
@@ -57,7 +57,7 @@ def login():
     ))
     login_button.click()
 
-    # 处理滑块验证（简化版，实际可能需要更复杂的处理）
+    # 处理滑块验证（）
 
     # ========== 3. 处理滑块验证 ==========
     try:
@@ -94,7 +94,7 @@ def login():
         # 点击并按住滑块
         actions.click_and_hold(slider).perform()
 
-        # 模拟更自然的人类滑动行为 - 更复杂的模式
+        #
         # 1. 开始时的随机停顿
         time.sleep(random.uniform(0.2, 0.5))
 
@@ -144,7 +144,7 @@ def login():
         final_step_distance = remaining_distance / final_steps
 
         for i in range(final_steps):
-            # 更大的随机抖动
+            #
             jitter_x = random.uniform(-3, 3)
             jitter_y = random.uniform(-1.5, 1.5)
 
@@ -161,7 +161,7 @@ def login():
         actions.move_by_offset(2, 0).perform()
         time.sleep(random.uniform(0.1, 0.2))
 
-        # 6. 可能会有轻微的回拉动作，模拟人类操作
+        # 6.
         backtrack_distance = random.uniform(2, 5)
         actions.move_by_offset(-backtrack_distance, 0).perform()
         time.sleep(random.uniform(0.1, 0.2))

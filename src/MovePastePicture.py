@@ -31,7 +31,7 @@ image_files = sorted(
 
 # 校验页数
 if len(image_files) != len(prs.slides):
-    print(f"❌ 图片数量（{len(image_files)}）和幻灯片页数（{len(prs.slides)}）不一致！")
+    print(f"图片数量（{len(image_files)}）和幻灯片页数（{len(prs.slides)}）不一致！")
     exit(1)
 
 # 插入图片（自动居中）
@@ -47,8 +47,8 @@ for i, slide in enumerate(prs.slides):
         width=Inches(image_width_in),
         height=Inches(image_height_in)
     )
-    print(f"✅ 插入第 {i+1} 页：{image_files[i]}")
+    print(f"插入第 {i+1} 页：{image_files[i]}")
 
 # 保存结果
 prs.save(output_path)
-print(f"\n🎉 完成！新PPT已保存为：{output_path}")
+print(f"\n完成！新PPT已保存为：{output_path}")
